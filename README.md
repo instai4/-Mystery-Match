@@ -52,7 +52,4 @@
 ### Play Online
 Just open the `index.html` file in any modern web browser. No server or installation required.
 
-### Local Setup
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/instai4/mystery-match.git
+
