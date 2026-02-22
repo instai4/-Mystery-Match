@@ -52,4 +52,9 @@
 ### Play Online
 Just open the `index.html` file in any modern web browser. No server or installation required.
 
+# Project Structure
+mystery-match/
+├── index.html          # Main game file (HTML + CSS + JavaScript)
+├── README.md           # This file
+
 
