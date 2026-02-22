@@ -2,7 +2,7 @@
 
 **Mystery Match Classic** is a beautifully crafted Mahjong Solitaire game with a mysterious twist. Challenge your mind by matching identical tiles, clearing the board layer by layer, and beating the clock. Featuring a classic pyramid layout, smooth animations, and helpful gameplay features, it's the perfect puzzle experience for both beginners and solitaire enthusiasts.
 
-🔗 **Play now**: [https://instai4.github.io/-Mystery-Match/]*
+🔗 **Play now**: https://instai4.github.io/-Mystery-Match/
 
 ---
 
