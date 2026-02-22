@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Mystery Match Classic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 50%, #1a472a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header h1 {
+            color: #ffd700;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #ffd700, #ffaa00);
+            color: #333;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(145deg, #4a7c59, #3d6b4a);
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .board {
+            position: relative;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .tile {
+            position: absolute;
+            width: 42px;
+            height: 56px;
+            background: linear-gradient(145deg, #fff8e7, #f5e6c8);
+            border: 1px solid #c9a959;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.4rem;
+            box-shadow: 
+                2px 2px 4px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.15s ease;
+            transform-origin: center center;
+        }
+
+        .tile::before {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 2px;
+            right: -2px;
+            height: 4px;
+            background: linear-gradient(to bottom, #8b7355, #6b5344);
+            border-radius: 0 0 3px 3px;
+            z-index: -1;
+        }
+
+        .tile::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: -4px;
+            bottom: -2px;
+            width: 4px;
+            background: linear-gradient(to right, #a08060, #7a6045);
+            border-radius: 0 3px 3px 0;
+            z-index: -1;
+        }
+
+        .tile.blocked {
+            cursor: not-allowed;
+            filter: brightness(0.7);
+        }
+
+        .tile.free:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                4px 6px 12px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            z-index: 1000 !important;
+        }
+
+        .tile.selected {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 0 0 3px #ffd700,
+                6px 8px 16px rgba(0, 0, 0, 0.5);
+            z-index: 1001 !important;
+            background: linear-gradient(145deg, #fffacd, #fff8dc);
+        }
+
+        .tile.hint {
+            animation: pulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 0 6px rgba(0, 255, 0, 0.3), 2px 2px 4px rgba(0, 0, 0, 0.3); }
+        }
+
+        .tile.matched {
+            animation: matchAnim 0.4s ease-out forwards;
+        }
+
+        @keyframes matchAnim {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .tile-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 2px;
+        }
+
+        .tile-symbol {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+
+        .tile-rank {
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: #666;
+        }
+
+        /* Tile colors by type */
+        .tile-dots .tile-symbol { color: #1e90ff; }
+        .tile-bamboo .tile-symbol { color: #228b22; }
+        .tile-character .tile-symbol { color: #dc143c; }
+        .tile-wind .tile-symbol { color: #4a4a4a; font-size: 1rem; }
+        .tile-dragon .tile-symbol { color: #8b0000; }
+        .tile-flower .tile-symbol { color: #ff69b4; }
+        .tile-season .tile-symbol { color: #daa520; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #2d5a3d, #1a472a);
+            padding: 30px 50px;
+            border-radius: 15px;
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffd700;
+        }
+
+        .modal-content h2 {
+            font-size: 2rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 5px;
+            z-index: 1500;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        .tiles-remaining {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .stats {
+                gap: 10px;
+            }
+            
+            .stat-value {
+                font-size: 1rem;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .tile {
+                width: 34px;
+                height: 46px;
+            }
+            
+            .tile-symbol {
+                font-size: 1rem;
+            }
+        }
+        footer {
+    width: 100%;
+    margin-top: auto; /* pushes footer to bottom if body is flex column */
+    padding: 20px 10px 10px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    border-top: 1px solid #ffd70033;
+    text-align: center;
+}
+
+.footer-content {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.creator {
+    color: #ccc;
+    font-size: 0.95rem;
+}
+
+.creator-name {
+    color: #ffd700;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.creator-name:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.social-icons {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.social-icon {
+    color: #aaa;
+    font-size: 1.5rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.social-icon:hover {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+    transform: translateY(-3px);
+}
+
+.copyright {
+    color: #888;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🀄 Mystery Match</h1>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-label">Time</span>
+                <span class="stat-value" id="timer">0:00</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Moves</span>
+                <span class="stat-value" id="moves">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Tiles</span>
+                <span class="stat-value" id="tiles-left">144</span>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-primary" id="newGameBtn">New Game</button>
+            <button class="btn btn-secondary" id="hintBtn">💡 Hint</button>
+            <button class="btn btn-secondary" id="undoBtn">↩ Undo</button>
+            <button class="btn btn-secondary" id="shuffleBtn">🔀 Shuffle</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="board" id="board"></div>
+    </div>
+
+
+    <div class="modal" id="winModal">
+        <div class="modal-content">
+            <h2>🎉 Congratulations!</h2>
+            <p>You cleared all the tiles!</p>
+            <p id="winStats"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="game.newGame()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="loseModal">
+        <div class="modal-content">
+            <h2>😔 No Moves Left</h2>
+            <p>There are no more valid matches available.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="game.newGame()">New Game</button>
+                <button class="btn btn-secondary" onclick="game.shuffle()">Shuffle</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="message" id="message"></div>
+    <footer>
+  <div class="footer-content">
+    <p class="creator">Created by <a href="https://instai4.github.io/PORT-FOLIO/" target="_blank" class="creator-name">Anurag</a></p>
+    
+    <div class="social-icons">
+      <a href="https://www.instagram.com/inst.ai.4?igsh=MWNqaG15OWQ2MGczMA==" target="_blank" class="social-icon" aria-label="Instagram">
+        <i class="fab fa-instagram"></i>
+      </a>
+      <a href="https://www.facebook.com/share/1DMBwCvzDL/" target="_blank" class="social-icon" aria-label="Facebook">
+        <i class="fab fa-facebook"></i>
+      </a>
+      <a href="https://www.linkedin.com/in/anurag-singh-43230a380/" target="_blank" class="social-icon" aria-label="LinkedIn">
+        <i class="fab fa-linkedin"></i>
+      </a>
+      <a href="https://github.com/instai4" target="_blank" class="social-icon" aria-label="GitHub">
+        <i class="fab fa-github"></i>
+      </a>
+    </div>
+    
+    <p class="copyright">Unravel the mystery, tile by tile &copy; 2026 Mystery Match</p>
+  </div>
+</footer>
+
+    <script>
+        // Tile definitions
+        const TILE_TYPES = {
+            DOTS: { name: 'dots', symbols: ['🔵', '⚫', '🔴', '⚪', '🟡', '🟢', '🟣', '🟤', '⭕'] },
+            BAMBOO: { name: 'bamboo', symbols: ['🎋', '🎍', '🌿', '🌾', '🍃', '🌱', '🪴', '🎄', '🌴'] },
+            CHARACTER: { name: 'character', symbols: ['一', '二', '三', '四', '五', '六', '七', '八', '九'] },
+            WIND: { name: 'wind', symbols: ['東', '南', '西', '北'] },
+            DRAGON: { name: 'dragon', symbols: ['中', '發', '白'] },
+            FLOWER: { name: 'flower', symbols: ['🌸', '🌺', '🌻', '🌷'] },
+            SEASON: { name: 'season', symbols: ['🌧️', '☀️', '🍂', '❄️'] }
+        };
+
+        // Turtle layout definition - each position is [x, y, layer]
+        const TURTLE_LAYOUT = [
+            // Layer 0 (bottom) - main body
+            ...generateLayerPositions(0, [
+                [1, 0, 12], [0, 1, 14], [0, 2, 14], [0, 3, 14], [0, 4, 14], [1, 5, 12]
+            ]),
+            // Extra side tiles
+            { x: -1, y: 3, layer: 0 },
+            { x: 14, y: 3, layer: 0 },
+            { x: 15, y: 3, layer: 0 },
+            
+            // Layer 1
+            ...generateLayerPositions(1, [
+                [2, 1, 10], [2, 2, 10], [2, 3, 10], [2, 4, 10]
+            ]),
+            
+            // Layer 2
+            ...generateLayerPositions(2, [
+                [3, 2, 8], [3, 3, 8]
+            ]),
+            
+            // Layer 3
+            ...generateLayerPositions(3, [
+                [4, 2, 6], [4, 3, 6]
+            ]),
+            
+            // Layer 4 (top)
+            { x: 6, y: 3, layer: 4 }
+        ];
+
+        function generateLayerPositions(layer, rows) {
+            const positions = [];
+            for (const [startX, y, count] of rows) {
+                for (let i = 0; i < count; i++) {
+                    positions.push({ x: startX + i, y: y, layer: layer });
+                }
+            }
+            return positions;
+        }
+
+        // Simplified classic layout
+        function generateClassicLayout() {
+            const positions = [];
+            
+            // Layer 0 - Base (12 columns x 6 rows with gaps)
+            const basePattern = [
+                [1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1]
+            ];
+            
+            for (let y = 0; y < basePattern.length; y++) {
+                for (let x = 0; x < basePattern[y].length; x++) {
+                    if (basePattern[y][x]) {
+                        positions.push({ x: x + 1, y: y, layer: 0 });
+                    }
+                }
+            }
+            
+            // Add wing tiles
+            positions.push({ x: 0, y: 2.5, layer: 0 });
+            positions.push({ x: 13, y: 2.5, layer: 0 });
+            positions.push({ x: 14, y: 2.5, layer: 0 });
+            
+            // Layer 1 (10 columns x 4 rows)
+            for (let y = 1; y < 5; y++) {
+                for (let x = 2; x < 12; x++) {
+                    positions.push({ x: x, y: y, layer: 1 });
+                }
+            }
+            
+            // Layer 2 (8 columns x 4 rows)
+            for (let y = 1; y < 5; y++) {
+                for (let x = 3; x < 11; x++) {
+                    positions.push({ x: x, y: y, layer: 2 });
+                }
+            }
+            
+            // Layer 3 (6 columns x 2 rows)
+            for (let y = 2; y < 4; y++) {
+                for (let x = 4; x < 10; x++) {
+                    positions.push({ x: x, y: y, layer: 3 });
+                }
+            }
+            
+            // Layer 4 (4 columns x 2 rows)
+            for (let y = 2; y < 4; y++) {
+                for (let x = 5; x < 9; x++) {
+                    positions.push({ x: x, y: y, layer: 4 });
+                }
+            }
+            
+            // Layer 5 (2 x 2)
+            positions.push({ x: 6, y: 2.5, layer: 5 });
+            positions.push({ x: 7, y: 2.5, layer: 5 });
+            
+            // Top tile
+            positions.push({ x: 6.5, y: 2.5, layer: 6 });
+            
+            return positions;
+        }
+
+        // Simplified pyramid layout that uses exactly 144 tiles
+        function generatePyramidLayout() {
+            const positions = [];
+            
+            // Layer 0: 8x8 = 64 tiles
+            for (let y = 0; y < 8; y++) {
+                for (let x = 0; x < 8; x++) {
+                    positions.push({ x: x, y: y, layer: 0 });
+                }
+            }
+            
+            // Layer 1: 6x6 = 36 tiles
+            for (let y = 0; y < 6; y++) {
+                for (let x = 0; x < 6; x++) {
+                    positions.push({ x: x + 1, y: y + 1, layer: 1 });
+                }
+            }
+            
+            // Layer 2: 4x6 = 24 tiles
+            for (let y = 0; y < 6; y++) {
+                for (let x = 0; x < 4; x++) {
+                    positions.push({ x: x + 2, y: y + 1, layer: 2 });
+                }
+            }
+            
+            // Layer 3: 4x4 = 16 tiles
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    positions.push({ x: x + 2, y: y + 2, layer: 3 });
+                }
+            }
+            
+            // Layer 4: 2x2 = 4 tiles
+            for (let y = 0; y < 2; y++) {
+                for (let x = 0; x < 2; x++) {
+                    positions.push({ x: x + 3, y: y + 3, layer: 4 });
+                }
+            }
+            
+            return positions; // Total: 64 + 36 + 24 + 16 + 4 = 144
+        }
+
+        class MysteryMatch {
+            constructor() {
+                this.board = document.getElementById('board');
+                this.timerEl = document.getElementById('timer');
+                this.movesEl = document.getElementById('moves');
+                this.tilesLeftEl = document.getElementById('tiles-left');
+                this.messageEl = document.getElementById('message');
+                this.winModal = document.getElementById('winModal');
+                this.loseModal = document.getElementById('loseModal');
+                
+                this.tiles = [];
+                this.selectedTile = null;
+                this.moves = 0;
+                this.timerInterval = null;
+                this.seconds = 0;
+                this.history = [];
+                this.hintTiles = [];
+                
+                this.TILE_WIDTH = 42;
+                this.TILE_HEIGHT = 56;
+                this.LAYER_OFFSET_X = 4;
+                this.LAYER_OFFSET_Y = 4;
+                
+                this.setupEventListeners();
+                this.newGame();
+            }
+
+            setupEventListeners() {
+                document.getElementById('newGameBtn').addEventListener('click', () => this.newGame());
+                document.getElementById('hintBtn').addEventListener('click', () => this.showHint());
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('shuffleBtn').addEventListener('click', () => this.shuffle());
+            }
+
+            newGame() {
+                this.closeModals();
+                this.stopTimer();
+                this.tiles = [];
+                this.selectedTile = null;
+                this.moves = 0;
+                this.seconds = 0;
+                this.history = [];
+                this.hintTiles = [];
+                
+                this.updateUI();
+                this.generateTiles();
+                this.renderBoard();
+                this.updateFreeTiles();
+                this.startTimer();
+            }
+
+            generateTiles() {
+                // Generate all 144 tiles (4 of each type)
+                const tileSet = [];
+                
+                // Dots (1-9), 4 of each
+                for (let rank = 1; rank <= 9; rank++) {
+                    for (let i = 0; i < 4; i++) {
+                        tileSet.push({ type: 'dots', rank: rank, symbol: TILE_TYPES.DOTS.symbols[rank - 1] });
+                    }
+                }
+                
+                // Bamboo (1-9), 4 of each
+                for (let rank = 1; rank <= 9; rank++) {
+                    for (let i = 0; i < 4; i++) {
+                        tileSet.push({ type: 'bamboo', rank: rank, symbol: TILE_TYPES.BAMBOO.symbols[rank - 1] });
+                    }
+                }
+                
+                // Characters (1-9), 4 of each
+                for (let rank = 1; rank <= 9; rank++) {
+                    for (let i = 0; i < 4; i++) {
+                        tileSet.push({ type: 'character', rank: rank, symbol: TILE_TYPES.CHARACTER.symbols[rank - 1] });
+                    }
+                }
+                
+                // Winds (4 types), 4 of each
+                for (let rank = 0; rank < 4; rank++) {
+                    for (let i = 0; i < 4; i++) {
+                        tileSet.push({ type: 'wind', rank: rank, symbol: TILE_TYPES.WIND.symbols[rank] });
+                    }
+                }
+                
+                // Dragons (3 types), 4 of each
+                for (let rank = 0; rank < 3; rank++) {
+                    for (let i = 0; i < 4; i++) {
+                        tileSet.push({ type: 'dragon', rank: rank, symbol: TILE_TYPES.DRAGON.symbols[rank] });
+                    }
+                }
+                
+                // Flowers (4 unique, match any flower)
+                for (let rank = 0; rank < 4; rank++) {
+                    tileSet.push({ type: 'flower', rank: rank, symbol: TILE_TYPES.FLOWER.symbols[rank], matchGroup: 'flower' });
+                }
+                
+                // Seasons (4 unique, match any season)
+                for (let rank = 0; rank < 4; rank++) {
+                    tileSet.push({ type: 'season', rank: rank, symbol: TILE_TYPES.SEASON.symbols[rank], matchGroup: 'season' });
+                }
+                
+                // Shuffle tile set
+                this.shuffleArray(tileSet);
+                
+                // Get layout positions
+                const positions = generatePyramidLayout();
+                
+                // Assign tiles to positions
+                for (let i = 0; i < positions.length && i < tileSet.length; i++) {
+                    const pos = positions[i];
+                    const tileData = tileSet[i];
+                    
+                    this.tiles.push({
+                        id: i,
+                        type: tileData.type,
+                        rank: tileData.rank,
+                        symbol: tileData.symbol,
+                        matchGroup: tileData.matchGroup || `${tileData.type}-${tileData.rank}`,
+                        x: pos.x,
+                        y: pos.y,
+                        layer: pos.layer,
+                        removed: false,
+                        isFree: false,
+                        element: null
+                    });
+                }
+            }
+
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            renderBoard() {
+                this.board.innerHTML = '';
+                
+                // Calculate board dimensions
+                let maxX = 0, maxY = 0, maxLayer = 0;
+                for (const tile of this.tiles) {
+                    maxX = Math.max(maxX, tile.x);
+                    maxY = Math.max(maxY, tile.y);
+                    maxLayer = Math.max(maxLayer, tile.layer);
+                }
+                
+                const boardWidth = (maxX + 2) * this.TILE_WIDTH + maxLayer * this.LAYER_OFFSET_X + 50;
+                const boardHeight = (maxY + 2) * this.TILE_HEIGHT + maxLayer * this.LAYER_OFFSET_Y + 50;
+                
+                this.board.style.width = boardWidth + 'px';
+                this.board.style.height = boardHeight + 'px';
+                
+                // Sort tiles by layer for proper z-index
+                const sortedTiles = [...this.tiles].sort((a, b) => a.layer - b.layer);
+                
+                for (const tile of sortedTiles) {
+                    const element = document.createElement('div');
+                    element.className = `tile tile-${tile.type}`;
+                    element.dataset.id = tile.id;
+                    
+                    const left = tile.x * this.TILE_WIDTH + tile.layer * this.LAYER_OFFSET_X + 20;
+                    const top = tile.y * this.TILE_HEIGHT - tile.layer * this.LAYER_OFFSET_Y + 20;
+                    
+                    element.style.left = left + 'px';
+                    element.style.top = top + 'px';
+                    element.style.zIndex = tile.layer * 100 + Math.floor(tile.y * 10);
+                    
+                    element.innerHTML = `
+                        <div class="tile-content">
+                            <span class="tile-symbol">${tile.symbol}</span>
+                            ${tile.type === 'character' ? `<span class="tile-rank">${tile.rank}</span>` : ''}
+                        </div>
+                    `;
+                    
+                    element.addEventListener('click', () => this.onTileClick(tile));
+                    
+                    this.board.appendChild(element);
+                    tile.element = element;
+                }
+            }
+
+            updateFreeTiles() {
+                for (const tile of this.tiles) {
+                    if (tile.removed) continue;
+                    
+                    tile.isFree = this.isTileFree(tile);
+                    
+                    if (tile.element) {
+                        tile.element.classList.toggle('free', tile.isFree);
+                        tile.element.classList.toggle('blocked', !tile.isFree);
+                    }
+                }
+            }
+
+            isTileFree(tile) {
+                if (tile.removed) return false;
+                
+                // Check if any tile is on top
+                for (const other of this.tiles) {
+                    if (other.removed || other.id === tile.id) continue;
+                    if (other.layer !== tile.layer + 1) continue;
+                    
+                    // Check if overlapping (with some tolerance for staggered layouts)
+                    const overlapX = Math.abs(other.x - tile.x) < 1;
+                    const overlapY = Math.abs(other.y - tile.y) < 1;
+                    
+                    if (overlapX && overlapY) {
+                        return false;
+                    }
+                }
+                
+                // Check if left OR right is open
+                let leftBlocked = false;
+                let rightBlocked = false;
+                
+                for (const other of this.tiles) {
+                    if (other.removed || other.id === tile.id) continue;
+                    if (other.layer !== tile.layer) continue;
+                    
+                    const yOverlap = Math.abs(other.y - tile.y) < 0.9;
+                    
+                    if (yOverlap) {
+                        if (Math.abs(other.x - (tile.x - 1)) < 0.1) leftBlocked = true;
+                        if (Math.abs(other.x - (tile.x + 1)) < 0.1) rightBlocked = true;
+                    }
+                }
+                
+                return !(leftBlocked && rightBlocked);
+            }
+
+            onTileClick(tile) {
+                if (tile.removed || !tile.isFree) return;
+                
+                this.clearHints();
+                
+                if (this.selectedTile === null) {
+                    this.selectTile(tile);
+                } else if (this.selectedTile.id === tile.id) {
+                    this.deselectTile();
+                } else {
+                    if (this.tilesMatch(this.selectedTile, tile)) {
+                        this.matchTiles(this.selectedTile, tile);
+                    } else {
+                        this.showMessage("Tiles don't match!");
+                        this.deselectTile();
+                        this.selectTile(tile);
+                    }
+                }
+            }
+
+            selectTile(tile) {
+                this.selectedTile = tile;
+                tile.element.classList.add('selected');
+                this.playSound('select');
+            }
+
+            deselectTile() {
+                if (this.selectedTile && this.selectedTile.element) {
+                    this.selectedTile.element.classList.remove('selected');
+                }
+                this.selectedTile = null;
+            }
+
+            tilesMatch(tile1, tile2) {
+                return tile1.matchGroup === tile2.matchGroup;
+            }
+
+            matchTiles(tile1, tile2) {
+                // Save to history
+                this.history.push({
+                    tile1: { ...tile1 },
+                    tile2: { ...tile2 }
+                });
+                
+                // Animate removal
+                tile1.element.classList.remove('selected');
+                tile1.element.classList.add('matched');
+                tile2.element.classList.add('matched');
+                
+                this.playSound('match');
+                
+                setTimeout(() => {
+                    tile1.removed = true;
+                    tile2.removed = true;
+                    tile1.element.style.display = 'none';
+                    tile2.element.style.display = 'none';
+                    
+                    this.selectedTile = null;
+                    this.moves++;
+                    this.updateUI();
+                    this.updateFreeTiles();
+                    this.checkGameState();
+                }, 300);
+            }
+
+            checkGameState() {
+                const remainingTiles = this.tiles.filter(t => !t.removed);
+                
+                if (remainingTiles.length === 0) {
+                    this.gameWon();
+                    return;
+                }
+                
+                if (!this.hasValidMoves()) {
+                    this.gameLost();
+                }
+            }
+
+            hasValidMoves() {
+                const freeTiles = this.tiles.filter(t => !t.removed && t.isFree);
+                
+                for (let i = 0; i < freeTiles.length - 1; i++) {
+                    for (let j = i + 1; j < freeTiles.length; j++) {
+                        if (this.tilesMatch(freeTiles[i], freeTiles[j])) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+
+            findValidMove() {
+                const freeTiles = this.tiles.filter(t => !t.removed && t.isFree);
+                
+                for (let i = 0; i < freeTiles.length - 1; i++) {
+                    for (let j = i + 1; j < freeTiles.length; j++) {
+                        if (this.tilesMatch(freeTiles[i], freeTiles[j])) {
+                            return [freeTiles[i], freeTiles[j]];
+                        }
+                    }
+                }
+                
+                return null;
+            }
+
+            showHint() {
+                this.clearHints();
+                const match = this.findValidMove();
+                
+                if (match) {
+                    this.hintTiles = match;
+                    match[0].element.classList.add('hint');
+                    match[1].element.classList.add('hint');
+                    
+                    setTimeout(() => this.clearHints(), 3000);
+                } else {
+                    this.showMessage("No moves available!");
+                }
+            }
+
+            clearHints() {
+                for (const tile of this.hintTiles) {
+                    if (tile.element) {
+                        tile.element.classList.remove('hint');
+                    }
+                }
+                this.hintTiles = [];
+            }
+
+            undo() {
+                if (this.history.length === 0) {
+                    this.showMessage("Nothing to undo!");
+                    return;
+                }
+                
+                const lastMove = this.history.pop();
+                
+                const tile1 = this.tiles.find(t => t.id === lastMove.tile1.id);
+                const tile2 = this.tiles.find(t => t.id === lastMove.tile2.id);
+                
+                tile1.removed = false;
+                tile2.removed = false;
+                tile1.element.style.display = '';
+                tile2.element.style.display = '';
+                tile1.element.classList.remove('matched');
+                tile2.element.classList.remove('matched');
+                
+                this.moves = Math.max(0, this.moves - 1);
+                this.deselectTile();
+                this.updateUI();
+                this.updateFreeTiles();
+                this.closeModals();
+            }
+
+            shuffle() {
+                this.closeModals();
+                
+                const remainingTiles = this.tiles.filter(t => !t.removed);
+                const tileData = remainingTiles.map(t => ({
+                    type: t.type,
+                    rank: t.rank,
+                    symbol: t.symbol,
+                    matchGroup: t.matchGroup
+                }));
+                
+                this.shuffleArray(tileData);
+                
+                for (let i = 0; i < remainingTiles.length; i++) {
+                    const tile = remainingTiles[i];
+                    const data = tileData[i];
+                    
+                    tile.type = data.type;
+                    tile.rank = data.rank;
+                    tile.symbol = data.symbol;
+                    tile.matchGroup = data.matchGroup;
+                    
+                    tile.element.className = `tile tile-${tile.type}`;
+                    tile.element.innerHTML = `
+                        <div class="tile-content">
+                            <span class="tile-symbol">${tile.symbol}</span>
+                            ${tile.type === 'character' ? `<span class="tile-rank">${tile.rank}</span>` : ''}
+                        </div>
+                    `;
+                }
+                
+                this.deselectTile();
+                this.updateFreeTiles();
+                this.showMessage("Tiles shuffled!");
+                
+                if (!this.hasValidMoves()) {
+                    this.shuffle(); // Keep shuffling until solvable
+                }
+            }
+
+            gameWon() {
+                this.stopTimer();
+                this.playSound('win');
+                
+                const winStats = document.getElementById('winStats');
+                winStats.textContent = `Time: ${this.formatTime(this.seconds)} | Moves: ${this.moves}`;
+                
+                this.winModal.classList.add('active');
+            }
+
+            gameLost() {
+                this.stopTimer();
+                this.loseModal.classList.add('active');
+            }
+
+            closeModals() {
+                this.winModal.classList.remove('active');
+                this.loseModal.classList.remove('active');
+            }
+
+            startTimer() {
+                this.timerInterval = setInterval(() => {
+                    this.seconds++;
+                    this.timerEl.textContent = this.formatTime(this.seconds);
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            updateUI() {
+                this.movesEl.textContent = this.moves;
+                this.tilesLeftEl.textContent = this.tiles.filter(t => !t.removed).length;
+            }
+
+            showMessage(text) {
+                this.messageEl.textContent = text;
+                this.messageEl.classList.add('show');
+                
+                setTimeout(() => {
+                    this.messageEl.classList.remove('show');
+                }, 2000);
+            }
+
+            playSound(type) {
+                // Create simple sounds using Web Audio API
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    if (type === 'select') {
+                        oscillator.frequency.value = 600;
+                        gainNode.gain.value = 0.1;
+                        oscillator.start();
+                        oscillator.stop(audioContext.currentTime + 0.05);
+                    } else if (type === 'match') {
+                        oscillator.frequency.value = 800;
+                        gainNode.gain.value = 0.1;
+                        oscillator.start();
+                        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+                        oscillator.stop(audioContext.currentTime + 0.15);
+                    } else if (type === 'win') {
+                        oscillator.frequency.value = 523;
+                        gainNode.gain.value = 0.1;
+                        oscillator.start();
+                        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.15);
+                        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.3);
+                        oscillator.stop(audioContext.currentTime + 0.45);
+                    }
+                } catch (e) {
+                    // Audio not supported
+                }
+            }
+        }
+
+        // Initialize game
+        const game = new MysteryMatch();
+    </script>
+</body>
+</html>
